@@ -3,10 +3,12 @@
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SimpleFileSystem.h>
 
+#include <erikboot.h>
 #include <file.h>
 
 EFI_SYSTEM_TABLE *ST;
 EFI_HANDLE ImageHandle;
+BootInfo BootData;
 
 EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 {
