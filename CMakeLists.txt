@@ -28,7 +28,10 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-entry:efi_main")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-subsystem:efi_application")
 
-add_executable(${PROJECT_NAME}.efi src/main.c)
+add_executable(${PROJECT_NAME}.efi
+    src/file.c
+    src/main.c
+)
 
 target_include_directories(${PROJECT_NAME}.efi PUBLIC 
     include include/UEFI ${EFI_ARCH_INCLUDES})
