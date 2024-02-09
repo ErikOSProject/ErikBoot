@@ -9,7 +9,7 @@
 
 EFI_SYSTEM_TABLE *ST;
 EFI_HANDLE ImageHandle;
-BootInfo BootData;
+BootInfo BootData = { 0 };
 
 EFI_STATUS FindGOP(void)
 {
@@ -27,6 +27,32 @@ EFI_STATUS FindGOP(void)
 	BootData.FBWidth = GOP->Mode->Info->HorizontalResolution;
 	BootData.FBHeight = GOP->Mode->Info->VerticalResolution;
 	BootData.FBPixelsPerScanLine = GOP->Mode->Info->PixelsPerScanLine;
+
+	return Status;
+}
+
+EFI_STATUS GetMemoryMap(UINTN *MapKey)
+{
+	EFI_STATUS Status;
+	UINTN BufferSize = sizeof(EFI_MEMORY_DESCRIPTOR);
+	UINTN DescriptorSize = 0;
+	UINT32 DescriptorVersion = 0;
+
+	Status = EFI_BUFFER_TOO_SMALL;
+	while (Status == EFI_BUFFER_TOO_SMALL) {
+		ST->BootServices->AllocatePool(EfiLoaderData, BufferSize,
+					       (void **)&BootData.MMapBase);
+		if (BootData.MMapBase) {
+			Status = ST->BootServices->GetMemoryMap(
+				&BufferSize,
+				(EFI_MEMORY_DESCRIPTOR *)BootData.MMapBase,
+				MapKey, &DescriptorSize, &DescriptorVersion);
+			if (EFI_ERROR(Status)) {
+				ST->BootServices->FreePool(BootData.MMapBase);
+				BootData.MMapBase = NULL;
+			}
+		}
+	}
 
 	return Status;
 }
@@ -51,6 +77,11 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 		return Status;
 
 	Status = FindGOP();
+	if (EFI_ERROR(Status))
+		return Status;
+
+	UINTN MapKey = 0;
+	Status = GetMemoryMap(&MapKey);
 	if (EFI_ERROR(Status))
 		return Status;
 
