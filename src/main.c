@@ -57,10 +57,20 @@ EFI_STATUS GetMemoryMap(UINTN *MapKey)
 	return Status;
 }
 
+EFI_STATUS Panic(EFI_STATUS Status, CHAR16 *message)
+{
+	EFI_INPUT_KEY Key;
+	ST->ConOut->OutputString(ST->ConOut, message);
+	ST->ConIn->Reset(ST->ConIn, FALSE);
+	while (ST->ConIn->ReadKeyStroke(ST->ConIn, &Key) == EFI_NOT_READY)
+		;
+
+	return Status;
+}
+
 EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 {
 	EFI_STATUS Status;
-	EFI_INPUT_KEY Key;
 
 	ST = _ST;
 	ImageHandle = _ImageHandle;
@@ -68,22 +78,22 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	EFI_FILE *KernelFile = NULL;
 	Status = OpenFile(NULL, L"KERNEL.ERIK", &KernelFile);
 	if (EFI_ERROR(Status))
-		return Status;
+		return Panic(Status, L"Cannot find the kernel!\r\n");
 
 	UINT8 *KernelData = NULL;
 	UINTN KernelLength = 0;
 	Status = LoadFile(KernelFile, &KernelData, &KernelLength);
 	if (EFI_ERROR(Status))
-		return Status;
+		return Panic(Status, L"Cannot load the kernel!\r\n");
 
 	Status = FindGOP();
 	if (EFI_ERROR(Status))
-		return Status;
+		return Panic(Status, L"Cannot initialize the framebuffer!\r\n");
 
 	UINTN MapKey = 0;
 	Status = GetMemoryMap(&MapKey);
 	if (EFI_ERROR(Status))
-		return Status;
+		return Panic(Status, L"Cannot get the memory map!\r\n");
 
 	ST->BootServices->ExitBootServices(ImageHandle, MapKey);
 	while (TRUE)
