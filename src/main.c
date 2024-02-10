@@ -85,13 +85,9 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	if (EFI_ERROR(Status))
 		return Status;
 
-	Status = ST->ConIn->Reset(ST->ConIn, FALSE);
-	if (EFI_ERROR(Status))
-		return Status;
-
-	while ((Status = ST->ConIn->ReadKeyStroke(ST->ConIn, &Key)) ==
-	       EFI_NOT_READY)
+	ST->BootServices->ExitBootServices(ImageHandle, MapKey);
+	while (TRUE)
 		;
 
-	return Status;
+	__builtin_unreachable();
 }
