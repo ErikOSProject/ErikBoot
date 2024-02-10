@@ -29,6 +29,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-entry:efi_main")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-subsystem:efi_application")
 
 add_executable(${PROJECT_NAME}.efi
+    src/elf.c
     src/file.c
     src/main.c
 )
