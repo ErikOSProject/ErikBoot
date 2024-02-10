@@ -4,6 +4,7 @@
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SimpleFileSystem.h>
 
+#include <elf.h>
 #include <erikboot.h>
 #include <file.h>
 
@@ -82,7 +83,10 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 
 	UINT8 *KernelData = NULL;
 	UINTN KernelLength = 0;
-	Status = LoadFile(KernelFile, &KernelData, &KernelLength);
+	UINTN KernelVirtualAddress = 0;
+	UINTN KernelEntry = 0;
+	Status = LoadElf(KernelFile, &KernelData, &KernelLength,
+			 &KernelVirtualAddress, &KernelEntry);
 	if (EFI_ERROR(Status))
 		return Panic(Status, L"Cannot load the kernel!\r\n");
 
@@ -107,8 +111,8 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 		return Panic(Status, L"Cannot get the memory map!\r\n");
 
 	ST->BootServices->ExitBootServices(ImageHandle, MapKey);
-	while (TRUE)
-		;
-
-	__builtin_unreachable();
+	__attribute__((sysv_abi, noreturn)) void (*KernelMain)(BootInfo) =
+		(__attribute__((sysv_abi, noreturn)) void (*)(BootInfo))(
+			(UINTN)KernelData + KernelEntry - KernelVirtualAddress);
+	KernelMain(BootData);
 }
