@@ -86,6 +86,17 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	if (EFI_ERROR(Status))
 		return Panic(Status, L"Cannot load the kernel!\r\n");
 
+	EFI_FILE *InitrdFile = NULL;
+	Status = OpenFile(NULL, L"INITRD.TAR", &KernelFile);
+	if (!EFI_ERROR(Status) && InitrdFile) {
+		Status = LoadFile(InitrdFile, (UINT8 **)&BootData.InitrdBase,
+				  &BootData.InitrdSize);
+		if (EFI_ERROR(Status)) {
+			BootData.InitrdBase = NULL;
+			BootData.InitrdSize = 0;
+		}
+	}
+
 	Status = FindGOP();
 	if (EFI_ERROR(Status))
 		return Panic(Status, L"Cannot initialize the framebuffer!\r\n");
