@@ -12,6 +12,13 @@ EFI_SYSTEM_TABLE *ST;
 EFI_HANDLE ImageHandle;
 BootInfo BootData = { 0 };
 
+void *memcpy(void *destination, const void *source, size_t num)
+{
+	for (size_t i = 0; i < num; i++)
+		((uint8_t *)destination)[i] = ((uint8_t *)source)[i];
+	return destination;
+}
+
 EFI_STATUS FindGOP(void)
 {
 	EFI_STATUS Status;
