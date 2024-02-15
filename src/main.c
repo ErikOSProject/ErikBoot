@@ -111,8 +111,14 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 		return Panic(Status, L"Cannot get the memory map!\r\n");
 
 	ST->BootServices->ExitBootServices(ImageHandle, MapKey);
+#if defined(__x86_64__) || defined(_M_X64)
 	__attribute__((sysv_abi, noreturn)) void (*KernelMain)(BootInfo) =
 		(__attribute__((sysv_abi, noreturn)) void (*)(BootInfo))(
 			(UINTN)KernelData + KernelEntry - KernelVirtualAddress);
+#else
+	__attribute__((noreturn)) void (*KernelMain)(BootInfo) =
+		(__attribute__((noreturn)) void (*)(BootInfo))(
+			(UINTN)KernelData + KernelEntry - KernelVirtualAddress);
+#endif
 	KernelMain(BootData);
 }
