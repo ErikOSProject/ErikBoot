@@ -110,7 +110,7 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 
 	Status = FindGOP();
 	if (EFI_ERROR(Status))
-		return Panic(Status, L"Cannot initialize the framebuffer!\r\n");
+		ST->ConOut->OutputString(ST->ConOut, L"Cannot initialize the framebuffer!\r\n");
 
 	UINTN MapKey = 0;
 	Status = GetMemoryMap(&MapKey);
