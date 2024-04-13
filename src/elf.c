@@ -50,31 +50,49 @@ EFI_STATUS LoadElf(EFI_FILE *File, UINT8 **Image, UINTN *ImageLength,
 	if (EFI_ERROR(Status))
 		return Status;
 
+	UINTN Highest = 0;
+	UINTN Lowest = MAX_UINTN;
+
 	ELF_PROGRAM_HEADER *PHeader = PHeaders;
 	while (((UINTN)PHeader) < ((UINTN)PHeaders) + PHeaderLoadSize) {
 		if (PHeader->Type == ELF_P_LOAD) {
-			*ImageLength = (PHeader->MemorySize + 0xFFF) / 0x1000;
-			ST->BootServices->AllocatePages(
-				AllocateAnyPages, EfiLoaderData, *ImageLength,
-				(EFI_PHYSICAL_ADDRESS *)Image);
+			if (Highest <
+			    PHeader->VirtualStart + PHeader->MemorySize)
+				Highest = PHeader->VirtualStart +
+					  PHeader->MemorySize;
+			if (Lowest > PHeader->VirtualStart)
+				Lowest = PHeader->VirtualStart;
+		}
+		PHeader = (ELF_PROGRAM_HEADER *)(((UINTN)PHeader) +
+						 Header.PHeaderEntrySize);
+	}
 
+	*VirtualAddress = Lowest;
+	*ImageLength = (Highest - Lowest + 0xfff) / 0x1000;
+	ST->BootServices->AllocatePages(
+		AllocateAnyPages, EfiLoaderData, *ImageLength,
+		(EFI_PHYSICAL_ADDRESS *)Image);
+
+	PHeader = PHeaders;
+	while (((UINTN)PHeader) < ((UINTN)PHeaders) + PHeaderLoadSize) {
+		if (PHeader->Type == ELF_P_LOAD) {
 			Status = File->SetPosition(File, PHeader->Offset);
 			if (EFI_ERROR(Status))
 				return Status;
 
 			UINTN LoadSize = PHeader->FileSize;
-			Status = File->Read(File, &LoadSize, (void *)*Image);
+			Status = File->Read(File, &LoadSize,
+					    (void *)(*Image +
+						     PHeader->VirtualStart -
+						     Lowest));
 			if (EFI_ERROR(Status))
 				return Status;
-
-			*VirtualAddress = PHeader->VirtualStart;
-			*Entry = Header.Entry;
-			break;
 		}
 
 		PHeader = (ELF_PROGRAM_HEADER *)(((UINTN)PHeader) +
 						 Header.PHeaderEntrySize);
 	}
+	*Entry = Header.Entry;
 
 	return Status;
 }
