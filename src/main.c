@@ -7,15 +7,23 @@
 #include <elf.h>
 #include <erikboot.h>
 #include <file.h>
+#include <paging.h>
 
 EFI_SYSTEM_TABLE *ST;
 EFI_HANDLE ImageHandle;
-BootInfo BootData = { 0 };
+BootInfo *BootData = NULL;
 
 void *memcpy(void *destination, const void *source, size_t num)
 {
 	for (size_t i = 0; i < num; i++)
 		((uint8_t *)destination)[i] = ((uint8_t *)source)[i];
+	return destination;
+}
+
+void *memset(void *destination, int c, size_t num)
+{
+	for (size_t i = 0; i < num; i++)
+		((uint8_t *)destination)[i] = (uint8_t)c;
 	return destination;
 }
 
@@ -30,11 +38,11 @@ EFI_STATUS FindGOP(void)
 	if (EFI_ERROR(Status))
 		return Status;
 
-	BootData.FBBase = (void *)GOP->Mode->FrameBufferBase;
-	BootData.FBSize = GOP->Mode->FrameBufferSize;
-	BootData.FBWidth = GOP->Mode->Info->HorizontalResolution;
-	BootData.FBHeight = GOP->Mode->Info->VerticalResolution;
-	BootData.FBPixelsPerScanLine = GOP->Mode->Info->PixelsPerScanLine;
+	BootData->FBBase = (void *)GOP->Mode->FrameBufferBase;
+	BootData->FBSize = GOP->Mode->FrameBufferSize;
+	BootData->FBWidth = GOP->Mode->Info->HorizontalResolution;
+	BootData->FBHeight = GOP->Mode->Info->VerticalResolution;
+	BootData->FBPixelsPerScanLine = GOP->Mode->Info->PixelsPerScanLine;
 
 	return Status;
 }
@@ -49,15 +57,15 @@ EFI_STATUS GetMemoryMap(UINTN *MapKey)
 	Status = EFI_BUFFER_TOO_SMALL;
 	while (Status == EFI_BUFFER_TOO_SMALL) {
 		ST->BootServices->AllocatePool(EfiLoaderData, BufferSize,
-					       (void **)&BootData.MMapBase);
-		if (BootData.MMapBase) {
+					       (void **)&BootData->MMapBase);
+		if (BootData->MMapBase) {
 			Status = ST->BootServices->GetMemoryMap(
 				&BufferSize,
-				(EFI_MEMORY_DESCRIPTOR *)BootData.MMapBase,
+				(EFI_MEMORY_DESCRIPTOR *)BootData->MMapBase,
 				MapKey, &DescriptorSize, &DescriptorVersion);
 			if (EFI_ERROR(Status)) {
-				ST->BootServices->FreePool(BootData.MMapBase);
-				BootData.MMapBase = NULL;
+				ST->BootServices->FreePool(BootData->MMapBase);
+				BootData->MMapBase = NULL;
 			}
 		}
 	}
@@ -83,6 +91,10 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	ST = _ST;
 	ImageHandle = _ImageHandle;
 
+	ST->BootServices->AllocatePages(AllocateAnyPages, EfiLoaderData, 1,
+					(EFI_PHYSICAL_ADDRESS *)&BootData);
+	memset(BootData, 0, sizeof(BootInfo));
+
 	EFI_FILE *KernelFile = NULL;
 	Status = OpenFile(NULL, L"KERNEL.ERIK", &KernelFile);
 	if (EFI_ERROR(Status))
@@ -100,11 +112,11 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	EFI_FILE *InitrdFile = NULL;
 	Status = OpenFile(NULL, L"INITRD.TAR", &KernelFile);
 	if (!EFI_ERROR(Status) && InitrdFile) {
-		Status = LoadFile(InitrdFile, (UINT8 **)&BootData.InitrdBase,
-				  &BootData.InitrdSize);
+		Status = LoadFile(InitrdFile, (UINT8 **)&BootData->InitrdBase,
+				  &BootData->InitrdSize);
 		if (EFI_ERROR(Status)) {
-			BootData.InitrdBase = NULL;
-			BootData.InitrdSize = 0;
+			BootData->InitrdBase = NULL;
+			BootData->InitrdSize = 0;
 		}
 	}
 
@@ -112,20 +124,25 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	if (EFI_ERROR(Status))
 		ST->ConOut->OutputString(ST->ConOut, L"Cannot initialize the framebuffer!\r\n");
 
+	Status = PreparePaging(KernelVirtualAddress, KernelData, KernelLength);
+	if (EFI_ERROR(Status))
+		return Panic(Status, L"Cannot prepare paging!\r\n");
+
 	UINTN MapKey = 0;
 	Status = GetMemoryMap(&MapKey);
 	if (EFI_ERROR(Status))
 		return Panic(Status, L"Cannot get the memory map!\r\n");
 
 	ST->BootServices->ExitBootServices(ImageHandle, MapKey);
+	EnablePaging();
+
 #if defined(__x86_64__) || defined(_M_X64)
 	__attribute__((sysv_abi, noreturn)) void (*KernelMain)(BootInfo) =
-		(__attribute__((sysv_abi, noreturn)) void (*)(BootInfo))(
-			(UINTN)KernelData + KernelEntry - KernelVirtualAddress);
+		(__attribute__((sysv_abi, noreturn)) void (*)(
+			BootInfo))KernelEntry;
 #else
 	__attribute__((noreturn)) void (*KernelMain)(BootInfo) =
-		(__attribute__((noreturn)) void (*)(BootInfo))(
-			(UINTN)KernelData + KernelEntry - KernelVirtualAddress);
+		(__attribute__((noreturn)) void (*)(BootInfo))KernelEntry;
 #endif
-	KernelMain(BootData);
+	KernelMain(*BootData);
 }

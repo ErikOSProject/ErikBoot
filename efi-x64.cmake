@@ -12,5 +12,6 @@ set(CMAKE_CXX_COMPILER_TARGET x86_64-unknown-windows)
 add_compile_options(-target ${CMAKE_C_COMPILER_TARGET})
 add_link_options(-target ${CMAKE_C_COMPILER_TARGET})
 
+file(GLOB ARCH_SOURCES src/arch/x86_64/*.c)
 set(EFI_ARCH_INCLUDES include/UEFI/X64)
 set(EFI_TOOLCHAIN TRUE)

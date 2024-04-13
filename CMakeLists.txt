@@ -28,10 +28,11 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-entry:efi_main")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-subsystem:efi_application")
 
+file(GLOB SOURCES src/*.c)
+
 add_executable(${PROJECT_NAME}.efi
-    src/elf.c
-    src/file.c
-    src/main.c
+    ${SOURCES}
+    ${ARCH_SOURCES}
 )
 
 target_include_directories(${PROJECT_NAME}.efi PUBLIC 
