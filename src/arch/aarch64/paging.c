@@ -73,28 +73,31 @@ EFI_STATUS PageHigherHalfMap(UINTN KernelVirtualAddress, UINT8 *KernelData,
 		Virtual += 4096;
 	}
 
-	UINTN VFBBase = Virtual + ((UINTN)BootData->FBBase & 0xfff);
-	for (size_t i = 0; i < 1 + BootData->FBSize / 4096; i++) {
-		PageMap(PGD, (void *)(Virtual & 0x7fff000),
-			(void *)(((UINTN)BootData->FBBase & ~0xfff) +
-				 4096 * i));
-		Virtual += 4096;
+	if (BootData->FBBase) {
+		UINTN VFBBase = Virtual + ((UINTN)BootData->FBBase & 0xfff);
+		for (size_t i = 0; i < 1 + BootData->FBSize / 4096; i++) {
+			PageMap(PGD, (void *)(Virtual & 0x7fff000),
+				(void *)(((UINTN)BootData->FBBase & ~0xfff) +
+					 4096 * i));
+			Virtual += 4096;
+		}
+		BootData->FBBase = (void *)VFBBase;
 	}
 
-	UINTN VInitrdBase =
-		BootData->InitrdBase ?
-			Virtual + ((UINTN)BootData->InitrdBase & 0xfff) :
-			0;
-	if (BootData->InitrdBase)
+	if (BootData->InitrdBase) {
+		UINTN VInitrdBase =
+			BootData->InitrdBase ?
+				Virtual +
+					((UINTN)BootData->InitrdBase & 0xfff) :
+				0;
 		for (size_t i = 0; i < 1 + BootData->InitrdSize / 4096; i++) {
 			PageMap(PGD, (void *)(Virtual & 0x7fff000),
 				(void *)(((UINTN)BootData->InitrdBase & ~0xfff) +
 					 4096 * i));
 			Virtual += 4096;
 		}
-
-	BootData->FBBase = (void *)VFBBase;
-	BootData->InitrdBase = (void *)VInitrdBase;
+		BootData->InitrdBase = (void *)VInitrdBase;
+	}
 
 	return Status;
 }
