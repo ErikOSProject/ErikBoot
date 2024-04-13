@@ -5,6 +5,7 @@
 
 extern EFI_SYSTEM_TABLE *ST;
 extern EFI_HANDLE ImageHandle;
+void *memset(void *destination, int c, size_t num);
 
 EFI_STATUS ValidateElf(ELF_HEADER *Header)
 {
@@ -85,6 +86,9 @@ EFI_STATUS LoadElf(EFI_FILE *File, UINT8 **Image, UINTN *ImageLength,
 					    (void *)(*Image +
 						     PHeader->VirtualStart -
 						     Lowest));
+			memset((void *)(*Image + PHeader->VirtualStart -
+					Lowest + PHeader->FileSize),
+			       0, PHeader->MemorySize - PHeader->FileSize);
 			if (EFI_ERROR(Status))
 				return Status;
 		}
