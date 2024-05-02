@@ -51,7 +51,6 @@ EFI_STATUS GetMemoryMap(UINTN *MapKey)
 {
 	EFI_STATUS Status;
 	UINTN BufferSize = sizeof(EFI_MEMORY_DESCRIPTOR);
-	UINTN DescriptorSize = 0;
 	UINT32 DescriptorVersion = 0;
 
 	Status = EFI_BUFFER_TOO_SMALL;
@@ -62,7 +61,8 @@ EFI_STATUS GetMemoryMap(UINTN *MapKey)
 			Status = ST->BootServices->GetMemoryMap(
 				&BufferSize,
 				(EFI_MEMORY_DESCRIPTOR *)BootData->MMapBase,
-				MapKey, &DescriptorSize, &DescriptorVersion);
+				MapKey, &BootData->MMapEntrySize,
+				&DescriptorVersion);
 			if (EFI_ERROR(Status)) {
 				ST->BootServices->FreePool(BootData->MMapBase);
 				BootData->MMapBase = NULL;
@@ -70,6 +70,7 @@ EFI_STATUS GetMemoryMap(UINTN *MapKey)
 		}
 	}
 
+	BootData->MMapEntryCount = BufferSize / BootData->MMapEntrySize;
 	return Status;
 }
 
