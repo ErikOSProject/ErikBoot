@@ -111,7 +111,7 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 		return Panic(Status, L"Cannot load the kernel!\r\n");
 
 	EFI_FILE *InitrdFile = NULL;
-	Status = OpenFile(NULL, L"INITRD.TAR", &KernelFile);
+	Status = OpenFile(NULL, L"INITRD.TAR", &InitrdFile);
 	if (!EFI_ERROR(Status) && InitrdFile) {
 		Status = LoadFile(InitrdFile, (UINT8 **)&BootData->InitrdBase,
 				  &BootData->InitrdSize);
