@@ -129,6 +129,9 @@ EFI_STATUS efi_main(EFI_HANDLE _ImageHandle, EFI_SYSTEM_TABLE *_ST)
 	if (EFI_ERROR(Status))
 		return Panic(Status, L"Cannot prepare paging!\r\n");
 
+	BootData->EfiConfigurationTable = ST->ConfigurationTable;
+	BootData->EFIConfigurationTableEntryCount = ST->NumberOfTableEntries;
+
 	UINTN MapKey = 0;
 	Status = GetMemoryMap(&MapKey);
 	if (EFI_ERROR(Status))

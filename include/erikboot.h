@@ -22,6 +22,8 @@ typedef struct {
 	size_t MMapEntrySize;
 	void *InitrdBase;
 	size_t InitrdSize;
+	void *EfiConfigurationTable;
+	size_t EFIConfigurationTableEntryCount;
 } BootInfo;
 
 #endif //_ERIKBOOT_H
