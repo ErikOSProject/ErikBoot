@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(ErikBoot VERSION 0.1)
 
-if(NOT EFI_TOOLCHAIN)
-message(FATAL_ERROR "Please specify a compatible toolchain file. 
-For example: \"cmake -DCMAKE_TOOLCHAIN_FILE=../efi-x64.cmake ..\"")
+# You can pass -DTARGET_ARCH=<arch> to select an architecture
+if(NOT DEFINED TARGET_ARCH)
+    set(TARGET_ARCH "x86_64") # Default architecture
 endif()
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0")
+include(${TARGET_ARCH}.cmake OPTIONAL)
+
+if(NOT EFI_TOOLCHAIN)
+message(FATAL_ERROR "Please specify a compatible toolchain file. 
+For example: \"cmake -DCMAKE_TOOLCHAIN_FILE=../x86_64.cmake ..\"")
+endif()
 
 add_compile_options(-Wall -Wextra -pedantic -Werror)
 add_compile_options(-ffreestanding)
