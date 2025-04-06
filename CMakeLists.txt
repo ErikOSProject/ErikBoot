@@ -41,3 +41,5 @@ add_executable(${PROJECT_NAME}.efi
 
 target_include_directories(${PROJECT_NAME}.efi PUBLIC 
     include include/UEFI ${EFI_ARCH_INCLUDES})
+
+install(TARGETS ${PROJECT_NAME}.efi)
